@@ -39,7 +39,7 @@ gulp.task('fileinclude', function() {
 
 gulp.task('watch', ['browserSync', 'sass', 'fileinclude'], function(){
   gulp.watch('app/scss/**/*.scss', ['sass']);
-  gulp.watch('app/templates/**/*.html', ['fileinclude']);
-  gulp.watch('app/templates/**/*.templ', ['fileinclude']);
+  gulp.watch('app/*.html', ['fileinclude']);
+  gulp.watch('app/includes/**/*.html', ['fileinclude']);
   // Other watchers
 })
