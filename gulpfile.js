@@ -1,45 +1,63 @@
 var	gulp = require('gulp');
   browserSync = require('browser-sync').create();
+  reload = browserSync.reload;
 	sass = require('gulp-sass');
 	normalize = require('node-normalize-scss').includePaths;
 	neat = require('node-neat').includePaths;
-	fileinclude = require('gulp-file-include');
+  cssnano = require('gulp-cssnano');
+  imagemin = require('gulp-imagemin');
+  runSequence = require('run-sequence');
+  nunjucksRender = require('gulp-nunjucks-render');
 
 gulp.task('browserSync', function() {
   browserSync.init({
     server: {
-      baseDir: 'app/'
+      baseDir: 'dist/'
     },
   })
 })
 
 gulp.task('sass', function() {
-  return gulp.src('app/scss/*.scss') // Location of working Sass files
+  return gulp.src('app/scss/*.scss')
   	.pipe(sass({
   		includePaths: [].concat(normalize, neat),
-  		//outputStyle: 'compressed'
-  	})) // Convert Sass to CSS
-  	.pipe(gulp.dest('app/css')) // Location of final CSS
+  		outputStyle: 'compressed'
+  	}))
+    .pipe(cssnano())
+  	.pipe(gulp.dest('dist/css'))
     .pipe(browserSync.reload({
       stream: true
     }))
 })
 
-gulp.task('fileinclude', function() {
-  gulp.src(['app/includes/**/*.html'])
-    .pipe(fileinclude({
-      prefix: '@@',
-      basepath: '@file'
-    }))
-    .pipe(gulp.dest('./app'))
-    .pipe(browserSync.reload({
-      stream: true
-    }))
+gulp.task('images', function(){
+  return gulp.src('app/images/**/*.+(png|jpg|gif|svg)')
+  .pipe(cache(imagemin()))
+  .pipe(gulp.dest('dist/images'))
 })
 
-gulp.task('watch', ['browserSync', 'sass', 'fileinclude'], function(){
+gulp.task('nunjucks', function () {
+  // Gets .html and .nunjucks files in pages
+  return gulp.src('app/pages/**/*.+(html|nunjucks)')
+  // Renders template with nunjucks
+  .pipe(nunjucksRender({
+      path: ['app/templates']
+    }))
+  // output files in app folder
+  .pipe(gulp.dest('dist'))
+})
+
+gulp.task('watch', ['browserSync', 'sass', 'nunjucks', 'images'], function(){
   gulp.watch('app/scss/**/*.scss', ['sass']);
-  gulp.watch('app/*.html', ['fileinclude']);
-  gulp.watch('app/includes/**/*.html', ['fileinclude']);
-  // Other watchers
+  gulp.watch('app/images/**/*.+(png|jpg|gif|svg)', ['images']);
+  gulp.watch('app/pages/**/*.nunjucks', ['nunjucks']);
+  gulp.watch('app/templates/**/*.nunjucks', ['nunjucks']);
+  gulp.watch("dist/*.html").on('change', reload);
+})
+
+gulp.task('build', function (callback) {
+  runSequence('sass', 
+    ['nunjucks', 'images'],
+    callback
+  )
 })
